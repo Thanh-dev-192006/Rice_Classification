@@ -67,7 +67,7 @@ Thư mục `data/` nằm trong `.gitignore` nên không có sau khi clone. Tạo
 New-Item -ItemType Directory -Force data\raw
 ```
 
-**Link tải dataset:**
+**Link tải dataset:  *https://www.kaggle.com/datasets/muratkokludataset/rice-image-dataset?select=Rice_Image_Dataset*
 
 <!-- Dán link tải dataset vào dòng trống phía trên -->
 
