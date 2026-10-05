@@ -1,26 +1,67 @@
-# Hướng dẫn cài đặt môi trường – Rice Classification
+# Rice Classification – SETUP
 
-Project phân loại 5 giống gạo (Arborio, Basmati, Ipsala, Jasmine, Karacadag) bằng CNN, dùng **TensorFlow 2.10 + Python 3.10**.
-Hướng dẫn này viết cho **Windows 10/11** (PowerShell). Có hai nhánh: máy **có GPU NVIDIA** và máy **không có GPU** (chạy bằng CPU).
+Hướng dẫn cài đặt môi trường để chạy các notebook của project phân loại 5 giống gạo (Arborio, Basmati, Ipsala, Jasmine, Karacadag) bằng CNN.
 
-> **Vì sao Python 3.10 và TensorFlow 2.10?** Đây là phiên bản TensorFlow cuối cùng hỗ trợ GPU trực tiếp trên Windows, và nó chỉ chạy với Python 3.7–3.10. Nếu máy bạn đang có Python 3.11 / 3.12 thì **không dùng được**, hãy làm theo Bước 3 để tạo môi trường Python 3.10 riêng (không ảnh hưởng Python hiện có).
+## Mục lục
+
+1. [Yêu cầu](#1-yêu-cầu)
+2. [Chọn cấu hình theo máy](#2-chọn-cấu-hình-theo-máy)
+3. [Cài đặt](#3-cài-đặt)
+4. [Kiểm tra cài đặt](#4-kiểm-tra-cài-đặt)
+5. [Chạy notebook](#5-chạy-notebook)
+6. [Troubleshooting](#6-troubleshooting)
+7. [Ghi chú](#7-ghi-chú)
 
 ---
 
-## Bước 1. Lấy code về máy
+## 1. Yêu cầu
+
+| Thành phần | Yêu cầu |
+|---|---|
+| Hệ điều hành | Windows 10/11 64-bit (dùng PowerShell) |
+| Python | 3.10 (TensorFlow 2.10 không hỗ trợ Python 3.11 trở lên) |
+| Công cụ | Git |
+| GPU (tuỳ chọn) | NVIDIA, driver hỗ trợ CUDA 11.8 (khuyến nghị bản 522.06 trở lên) |
+
+Môi trường Python 3.10 được tạo riêng trong project, không ảnh hưởng Python đang cài trên máy.
+
+---
+
+## 2. Chọn cấu hình theo máy
+
+Kiểm tra máy có GPU nào:
+
+```powershell
+Get-CimInstance Win32_VideoController | Select-Object Name
+```
+
+- Có dòng `NVIDIA GeForce ...` → máy có **GPU NVIDIA**.
+- Chỉ có `Intel(R) ... Graphics` hoặc `AMD Radeon(TM) Graphics` → máy **không có GPU rời** (chỉ có card tích hợp).
+
+| Loại máy | Cấu hình | Các bước thực hiện |
+|---|---|---|
+| Có GPU NVIDIA | TensorFlow GPU (CUDA 11.8) | 3.1 → 3.4, **3.5A**, 3.6 → 3.8 |
+| Không có GPU rời | TensorFlow CPU | 3.1 → 3.4, **3.5B**, 3.6 → 3.8 |
+| Không có GPU rời, muốn thử tăng tốc bằng card tích hợp | CPU + DirectML (thử nghiệm) | 3.1 → 3.4, **3.5C**, 3.6 → 3.8 |
+
+Chỉ thực hiện **một** trong ba mục 3.5A / 3.5B / 3.5C.
+
+---
+
+## 3. Cài đặt
+
+Tất cả lệnh chạy trong PowerShell, tại thư mục gốc `Rice_Classification` (từ 3.2 trở đi).
+
+### 3.1. Clone repo
 
 ```powershell
 git clone <link-repo-github>
 cd Rice_Classification
 ```
 
-Từ đây, mọi lệnh đều chạy trong thư mục gốc `Rice_Classification`.
+### 3.2. Tạo folder `data/raw` và tải dataset
 
----
-
-## Bước 2. Tạo folder `data/raw` và tải dataset
-
-Git **không** chứa dữ liệu (thư mục `data/` nằm trong `.gitignore`), nên sau khi clone bạn sẽ chưa có folder này. Tự tạo:
+Thư mục `data/` nằm trong `.gitignore` nên không có sau khi clone. Tạo thủ công:
 
 ```powershell
 New-Item -ItemType Directory -Force data\raw
@@ -30,82 +71,74 @@ New-Item -ItemType Directory -Force data\raw
 
 <!-- Dán link tải dataset vào dòng trống phía trên -->
 
-Tải về, giải nén, rồi đặt thư mục `Rice_Image_Dataset` vào trong `data\raw`. Cấu trúc đúng phải như sau:
+Giải nén và đặt thư mục `Rice_Image_Dataset` vào `data\raw`. Cấu trúc đúng:
 
 ```
 Rice_Classification/
 ├── data/
 │   └── raw/
 │       └── Rice_Image_Dataset/
-│           ├── Arborio/       (15.000 ảnh)
-│           ├── Basmati/       (15.000 ảnh)
-│           ├── Ipsala/        (15.000 ảnh)
-│           ├── Jasmine/       (15.000 ảnh)
-│           ├── Karacadag/     (15.000 ảnh)
+│           ├── Arborio/
+│           ├── Basmati/
+│           ├── Ipsala/
+│           ├── Jasmine/
+│           ├── Karacadag/
 │           └── Rice_Citation_Request.txt
 ├── notebooks/
 ├── requirements.txt
-└── setup.md
+└── SETUP.md
 ```
 
-Kiểm tra nhanh: 5 thư mục lớp phải nằm **trực tiếp** trong `Rice_Image_Dataset`. Đôi khi giải nén bị lồng thêm một lớp `Rice_Image_Dataset\Rice_Image_Dataset\...`; nếu gặp trường hợp này, hãy kéo 5 thư mục lớp ra một cấp.
+Năm thư mục lớp phải nằm **trực tiếp** trong `Rice_Image_Dataset`. Nếu bị lồng thêm một lớp `Rice_Image_Dataset\Rice_Image_Dataset\`, di chuyển năm thư mục lớp ra một cấp.
 
----
+### 3.3. Tạo môi trường Python 3.10
 
-## Bước 3. Tạo môi trường Python 3.10
+Chọn một trong hai cách.
 
-Chọn **một** trong hai cách.
-
-### Cách 1 (khuyên dùng): dùng `uv`
-
-`uv` tự tải Python 3.10 cho môi trường này, không cần gỡ hay đổi Python đang cài.
+**Cách 1 (khuyến nghị): `uv`.** `uv` tự tải Python 3.10 cho môi trường này.
 
 ```powershell
 winget install --id=astral-sh.uv -e        # hoặc: pip install uv
 uv venv .venv-tf --python 3.10
-.\.venv-tf\Scripts\Activate.ps1
 ```
 
-### Cách 2: dùng Python 3.10 cài sẵn
-
-Cần cài Python 3.10 từ python.org trước.
+**Cách 2: Python 3.10 cài sẵn (python.org).**
 
 ```powershell
 py -3.10 -m venv .venv-tf
+```
+
+### 3.4. Kích hoạt môi trường
+
+```powershell
 .\.venv-tf\Scripts\Activate.ps1
 ```
 
-> Nếu PowerShell báo lỗi không cho chạy script, chạy `Set-ExecutionPolicy -Scope Process Bypass` rồi kích hoạt lại.
+Đầu dòng lệnh hiện `(.venv-tf)` là thành công. Nếu PowerShell chặn script, chạy `Set-ExecutionPolicy -Scope Process Bypass` rồi kích hoạt lại.
 
-Sau khi kích hoạt, đầu dòng lệnh sẽ có `(.venv-tf)`.
+> Từ đây, dùng `uv pip install` nếu chọn Cách 1 ở 3.3. Nếu chọn Cách 2, thay `uv pip install` bằng `pip install`.
 
-> **Lưu ý các bước sau:** nếu dùng Cách 1, dùng `uv pip install ...`. Nếu dùng Cách 2, thay `uv pip install` bằng `pip install`.
+### 3.5A. Cài đặt cho máy có GPU NVIDIA
 
----
-
-## Bước 4. Cài thư viện
-
-Chọn nhánh theo máy của bạn. Bước 4A là **bắt buộc cho mọi máy**; Bước 4B chỉ làm thêm nếu máy có GPU NVIDIA.
-
-### 4A. Thư viện chung (mọi máy)
+Cài thư viện chung:
 
 ```powershell
 uv pip install -r requirements.txt
 ```
 
-Nếu máy **không có GPU**, bạn đã xong phần cài đặt, chuyển thẳng sang Bước 5. TensorFlow sẽ tự chạy bằng CPU.
+Kiểm tra driver (lệnh phải in ra bảng thông tin GPU):
 
-### 4B. Thêm hỗ trợ GPU (chỉ máy có GPU NVIDIA)
+```powershell
+nvidia-smi
+```
 
-**Điều kiện:** có card NVIDIA và đã cài driver đủ mới để hỗ trợ CUDA 11.8 (khoảng bản 522.06 trở lên). Kiểm tra bằng lệnh `nvidia-smi`; nếu lệnh in ra bảng thông tin GPU là ổn.
-
-Bạn **không cần** cài CUDA Toolkit hay cuDNN thủ công. Các thư viện này được cài qua pip (dung lượng tải khá lớn, ước tính 1–2 GB):
+Cài CUDA 11.8 và cuDNN 8.9.5 qua pip (không cần cài CUDA Toolkit riêng; dung lượng tải ước tính 1–2 GB):
 
 ```powershell
 uv pip install nvidia-cuda-runtime-cu11==11.8.89 nvidia-cuda-nvrtc-cu11==11.8.89 nvidia-cuda-nvcc-cu11==11.8.89 nvidia-cublas-cu11==11.11.3.6 nvidia-cufft-cu11==10.9.0.58 nvidia-curand-cu11==10.3.0.86 nvidia-cusolver-cu11==11.4.1.48 nvidia-cusparse-cu11==11.7.5.86 nvidia-cudnn-cu11==8.9.5.29
 ```
 
-Các file DLL của những gói này nằm trong `.venv-tf\Lib\site-packages\nvidia\...\bin`, nhưng TensorFlow trên Windows không tự tìm ra chúng. Cần tạo thêm hai file nhỏ để Python tự nạp DLL mỗi lần khởi động. Chạy nguyên khối lệnh sau trong thư mục gốc project:
+TensorFlow trên Windows không tự tìm DLL của các gói trên. Tạo hai file để Python tự nạp DLL khi khởi động:
 
 ```powershell
 $sp = ".\.venv-tf\Lib\site-packages"
@@ -125,93 +158,134 @@ if sys.platform == "win32":
 '@ | Set-Content -Path "$sp\_nvidia_dll_path.py" -Encoding ascii
 ```
 
-> Bộ phiên bản trên là bộ đã chạy được trên máy của tác giả (RTX 4050). Chưa kiểm tra trên các dòng card khác.
+### 3.5B. Cài đặt cho máy không có GPU rời (CPU)
 
----
-
-## Bước 5. Kiểm tra cài đặt
+Chỉ cần cài thư viện chung. TensorFlow tự chạy bằng CPU, không cần cấu hình thêm:
 
 ```powershell
-python -c "import tensorflow as tf; print('TensorFlow', tf.__version__); print('GPU:', tf.config.list_physical_devices('GPU'))"
+uv pip install -r requirements.txt
 ```
 
-| Máy | Kết quả đúng |
-|---|---|
-| Có GPU | `TensorFlow 2.10.1` và `GPU: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]` |
-| Không GPU | `TensorFlow 2.10.1` và `GPU: []` (kèm vài dòng cảnh báo "Could not load dynamic library", đây là bình thường) |
+### 3.5C. Máy không có GPU rời: thử tăng tốc bằng card tích hợp (DirectML, thử nghiệm)
 
-Nếu máy có GPU mà ra `GPU: []`, xem phần "Xử lý lỗi" ở cuối.
+Plugin DirectML cho phép TensorFlow dùng card tích hợp Intel/AMD trên Windows.
 
----
+> **Cảnh báo:**
+> - Microsoft đã **ngừng phát triển** plugin này; bản phát hành mới nhất là bản pre-release.
+> - Plugin yêu cầu `tensorflow-cpu==2.10`, **không dùng chung** với gói `tensorflow` trong `requirements.txt`.
+> - Cấu hình này **chưa được kiểm tra** với notebook của project, và chưa rõ có nhanh hơn CPU hay không.
+> - Nếu có lỗi, quay lại 3.5B bằng cách tạo lại môi trường từ 3.3.
 
-## Bước 6. Mở notebook
+Cài các thư viện chung trừ `tensorflow`, sau đó cài `tensorflow-cpu` và plugin:
 
-Đăng ký môi trường thành một kernel Jupyter:
+```powershell
+Get-Content requirements.txt | Where-Object { $_ -notmatch '^tensorflow' } | Set-Content "$env:TEMP\req-no-tf.txt"
+uv pip install -r "$env:TEMP\req-no-tf.txt"
+uv pip install "tensorflow-cpu==2.10.*" tensorflow-directml-plugin
+```
+
+Yêu cầu của plugin: Windows 10 v1709+ hoặc Windows 11, Python 3.7–3.10, card AMD Radeon R5/R7/R9 2xx trở lên hoặc Intel HD Graphics 5xx trở lên.
+
+### 3.6. Đăng ký kernel Jupyter
 
 ```powershell
 python -m ipykernel install --user --name rice-tf --display-name "Python 3.10 (TF 2.10)"
 ```
 
-Mở `notebooks/model_CNN.ipynb` bằng VS Code (hoặc `jupyter lab`) và chọn kernel **Python 3.10 (TF 2.10)**. Trong VS Code, bạn cũng có thể chọn trực tiếp `.venv-tf` trong phần "Select Kernel → Python Environments".
+Mở `notebooks/model_CNN.ipynb` bằng VS Code (hoặc `jupyter lab`) và chọn kernel **Python 3.10 (TF 2.10)**. Trong VS Code có thể chọn trực tiếp `.venv-tf` ở *Select Kernel → Python Environments*.
+
+### 3.7. Sửa đường dẫn trong notebook
+
+Notebook dùng đường dẫn tuyệt đối của máy tác giả. Sửa hai dòng sau cho đúng với máy của mình:
+
+| Cell | Dòng cần sửa |
+|---|---|
+| Mục *2. Loading and explore the dataset* | `dataset_path = r"D:\Rice_DL_Project\Rice_Classification\data\raw\Rice_Image_Dataset"` |
+| Mục *6. Model Training* | `models_dir = r"D:\Rice_DL_Project\Rice_Classification\models"` |
+
+Ví dụ: `r"C:\Users\Ten\Rice_Classification\data\raw\Rice_Image_Dataset"`. Thư mục `models` được notebook tự tạo.
+
+### 3.8. Chạy notebook
+
+Chạy lần lượt từ trên xuống. Cell *Data quality check* phải chạy **trước** cell chia dữ liệu và mất vài phút do đọc 75.000 ảnh. Xem mục 5 cho phần train.
 
 ---
 
-## Bước 7. Sửa đường dẫn trong notebook
+## 4. Kiểm tra cài đặt
 
-Notebook đang ghi đường dẫn tuyệt đối theo máy của tác giả. **Bạn phải sửa 2 dòng sau thành đường dẫn trên máy mình:**
+```powershell
+python -c "import tensorflow as tf; print('TensorFlow', tf.__version__); print('GPU:', tf.config.list_physical_devices('GPU'))"
+```
 
-1. Cell ở mục *2. Loading and explore the dataset*:
-   ```python
-   dataset_path = r"D:\Rice_DL_Project\Rice_Classification\data\raw\Rice_Image_Dataset"
-   ```
-2. Cell ở mục *6. Model Training*:
-   ```python
-   models_dir = r"D:\Rice_DL_Project\Rice_Classification\models"
-   ```
-
-Ví dụ: `r"C:\Users\Ten\Rice_Classification\data\raw\Rice_Image_Dataset"`. Thư mục `models` sẽ được notebook tự tạo.
+| Cấu hình | Kết quả đúng |
+|---|---|
+| GPU NVIDIA (3.5A) | `TensorFlow 2.10.1` và `GPU: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]` |
+| CPU (3.5B) | `TensorFlow 2.10.1` và `GPU: []`. Các dòng cảnh báo "Could not load dynamic library" là bình thường |
+| DirectML (3.5C) | `TensorFlow 2.10.x` và danh sách `GPU` có một thiết bị. Nếu là `[]`, plugin chưa hoạt động |
 
 ---
 
-## Bước 8. Chạy notebook
+## 5. Chạy notebook
 
-Chạy lần lượt từ trên xuống dưới. Thứ tự quan trọng:
+### Thời gian train
 
-1. Cell kiểm tra dữ liệu (mục *Data quality check*) chạy **trước** cell chia dữ liệu. Cell này đọc 75.000 ảnh nên mất vài phút.
-2. Cell chia dữ liệu 70/15/15, rồi xây model, compile, train, đánh giá.
+| Cấu hình | Thời gian mỗi epoch (Model 1, ảnh 224×224) |
+|---|---|
+| GPU NVIDIA (RTX 4050) | Khoảng 2 phút khi ổn định; vài epoch đầu có thể chậm hơn nhiều (đã gặp khoảng 10 phút) |
+| CPU | Chưa đo, dự kiến chậm hơn rất nhiều. Chạy thử `epochs=1` để ước lượng trước khi chạy đủ 10 epoch |
+| DirectML | Chưa đo |
 
-**Về việc train:**
-- Máy **có GPU**: train 10 epoch. Trên RTX 4050, khoảng 2 phút mỗi epoch ở trạng thái ổn định.
-- Máy **không GPU**: vẫn chạy được nhưng **chậm hơn nhiều** (chưa đo; dự kiến rất lâu với ảnh 224×224).
-- Sau khi train xong, notebook tự lưu `models/model1_cnn.h5` và `models/model1_cnn_history.json`. Lần chạy sau, nếu hai file này đã có thì notebook **nạp lại luôn, không train lại**. Muốn train lại thì đặt `FORCE_RETRAIN = True` trong cell train, hoặc xoá hai file đó.
-- **Mẹo cho máy không GPU:** nhờ một bạn có GPU gửi hai file trên (qua Drive, Zalo...) và bỏ vào thư mục `models/` của bạn. Khi đó notebook sẽ nạp model có sẵn và đánh giá luôn, không cần train. Điều kiện: dataset giống nhau, để test set giống nhau.
+### Lưu và nạp model
+
+Sau khi train xong, notebook tự lưu `models/model1_cnn.h5` và `models/model1_cnn_history.json`. Ở lần chạy sau, nếu hai file đã tồn tại, notebook **nạp model và bỏ qua bước train**.
+
+- Train lại: đặt `FORCE_RETRAIN = True` trong cell train, hoặc xoá hai file trên.
+- File `.h5` nặng khoảng 45MB, **không commit** lên git.
+
+### Máy không GPU: dùng model train sẵn (khuyến nghị)
+
+1. Nhận hai file `model1_cnn.h5` và `model1_cnn_history.json` từ người đã train xong (qua Drive hoặc kênh khác).
+2. Đặt vào thư mục `models/` của máy mình (đúng đường dẫn `models_dir` ở 3.7).
+3. Chạy notebook từ đầu. Cell train sẽ nạp model có sẵn, cell đánh giá chạy luôn trên test set.
+
+Điều kiện: dataset phải giống nhau để cả hai máy có cùng test set (split cố định bằng `random_state=42`).
 
 ---
 
-## Xử lý lỗi thường gặp
+## 6. Troubleshooting
 
-**Máy có GPU nhưng kết quả `GPU: []`**
+**GPU NVIDIA nhưng kết quả `GPU: []`**
+
 1. Chạy `nvidia-smi`. Nếu lỗi, cài hoặc cập nhật driver NVIDIA.
-2. Kiểm tra đang dùng đúng môi trường: `python --version` phải là 3.10.x.
+2. Kiểm tra `python --version` ra 3.10.x và đang kích hoạt `.venv-tf`.
 3. Kiểm tra hai file `_nvidia_dll_path.pth` và `_nvidia_dll_path.py` có trong `.venv-tf\Lib\site-packages`.
-4. Kiểm tra các gói NVIDIA đã cài: `uv pip list | findstr nvidia` (hoặc `pip list | findstr nvidia`).
-5. **Khởi động lại kernel/terminal.** Hai file `.pth` chỉ có tác dụng khi Python khởi động.
-
-**Lỗi liên quan `protobuf` hoặc `numpy`**
-Không tự nâng cấp các gói này. `requirements.txt` đã ghim phiên bản tương thích với TensorFlow 2.10 (`protobuf<3.20`, `numpy<1.24`). Nếu lỡ nâng cấp, cài lại: `uv pip install -r requirements.txt`.
+4. Kiểm tra gói NVIDIA đã cài: `uv pip list | findstr nvidia`.
+5. Khởi động lại kernel và terminal. Hai file `.pth` chỉ có tác dụng khi Python khởi động.
 
 **Hết bộ nhớ GPU (Out of Memory)**
+
 Giảm `batch_size` từ 32 xuống 16 trong hàm `make_generator` ở mục *3. Data Preprocessing*.
 
-**Notebook báo "FileNotFoundError" hoặc không thấy ảnh**
-Kiểm tra lại cấu trúc thư mục ở Bước 2 và đường dẫn `dataset_path` ở Bước 7.
+**DirectML: lỗi ở dòng `set_memory_growth` trong cell import**
+
+Thiết bị DirectML có thể không hỗ trợ `set_memory_growth`. Đặt hai dòng `for gpu in gpus:` và `tf.config.experimental.set_memory_growth(gpu, True)` thành comment.
+
+**Lỗi liên quan `protobuf` hoặc `numpy`**
+
+Không nâng cấp hai gói này. `requirements.txt` đã ghim phiên bản tương thích với TensorFlow 2.10 (`protobuf<3.20`, `numpy<1.24`). Nếu lỡ nâng cấp, cài lại: `uv pip install -r requirements.txt`.
+
+**`FileNotFoundError` hoặc không thấy ảnh**
+
+Kiểm tra lại cấu trúc thư mục ở 3.2 và đường dẫn `dataset_path` ở 3.7.
 
 **Không thấy kernel `Python 3.10 (TF 2.10)`**
-Chạy lại lệnh đăng ký kernel ở Bước 6 khi môi trường `.venv-tf` đang được kích hoạt, rồi tải lại cửa sổ VS Code.
+
+Chạy lại lệnh đăng ký ở 3.6 khi `.venv-tf` đang được kích hoạt, rồi tải lại cửa sổ VS Code.
 
 ---
 
-## Ghi chú
+## 7. Ghi chú
 
-- Hướng dẫn này chưa được kiểm tra trên Linux và macOS. Máy macOS có thể làm theo nhánh "không GPU".
-- Thư mục `.venv-tf/`, `data/` và `models/` không được đưa lên git; mỗi người tự tạo trên máy mình.
+- Đã kiểm tra: Windows, Python 3.10, TensorFlow 2.10.1, GPU NVIDIA RTX 4050 (cấu hình 3.5A).
+- Chưa kiểm tra: cấu hình CPU (3.5B), DirectML (3.5C), card NVIDIA đời khác, Linux và macOS. Máy macOS có thể thử theo cấu hình CPU.
+- `.venv-tf/`, `data/` không được đưa lên git; mỗi người tự tạo trên máy mình.
